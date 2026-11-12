@@ -1,5 +1,5 @@
 // غيّر رقم النسخة عند كل تحديث للتطبيق
-const CACHE = 'dental-v19';
+const CACHE = 'dental-v21';
 const CORE = ['./', './index.html', './manifest.json', './icon-180.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 
 self.addEventListener('install', e => {
