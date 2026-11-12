@@ -85,6 +85,15 @@
         /* ---- Floating success message ---- */
         .float-toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));z-index:80;pointer-events:none;display:flex;align-items:center;gap:10px;padding:14px 22px;border-radius:24px;max-width:90vw;text-align:center;color:#fff;font-weight:800;font-size:14px;background:linear-gradient(135deg,#059669,#10b981);box-shadow:0 12px 32px rgba(5,150,105,.45);animation:floaty 3.4s ease-in-out forwards}
         .float-toast .ico{font-size:20px}
+        /* ---- Suggestion list under inputs (replaces <datalist>, works on iPhone) ---- */
+        .sugg-box{position:fixed;z-index:9999;max-height:220px;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 12px 30px rgba(15,23,42,.18);padding:4px}
+        .dark .sugg-box{background:#1e293b;border-color:#334155}
+        .sugg-item{display:flex;width:100%;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font:700 12px 'Tajawal',sans-serif;color:#1e293b;text-align:start;background:none;border:0;cursor:pointer}
+        .sugg-item:hover,.sugg-item.on{background:rgb(var(--b50))}
+        .dark .sugg-item{color:#f1f5f9}
+        .dark .sugg-item:hover,.dark .sugg-item.on{background:#334155}
+        .sugg-sub{font-size:11px;font-weight:700;color:#94a3b8;white-space:nowrap}
+        .sugg-sub.low{color:#ef4444}
         @keyframes floaty{0%{opacity:0;transform:translate(-50%,30px) scale(.85)}12%{opacity:1;transform:translate(-50%,0) scale(1)}28%{transform:translate(-50%,-9px)}46%{transform:translate(-50%,0)}64%{transform:translate(-50%,-9px)}82%{opacity:1;transform:translate(-50%,-2px)}100%{opacity:0;transform:translate(-50%,-46px) scale(.97)}}
 
     </style>
@@ -107,7 +116,7 @@
                 <div class="flex items-center gap-3">
                     <img src="icon-192.png" alt="Cliniq" width="44" height="44" class="w-11 h-11 rounded-2xl border border-white/20 shadow-md shrink-0">
                     <div>
-                        <h1 class="font-black text-base sm:text-lg leading-tight tracking-wide" id="display-doctor-name">د. أحمد المحترم</h1>
+                        <h1 class="font-black text-base sm:text-lg leading-tight tracking-wide" id="display-doctor-name">د.زيد</h1>
                         <p class="text-xs text-brand-200 font-medium" id="display-clinic-name">عيادة الأسنان التخصصية</p>
                     </div>
                 </div>
@@ -547,7 +556,7 @@
             <div class="space-y-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">اسم الطبيب</label>
-                    <input type="text" id="welcome-doctor" placeholder="مثال: د. أحمد" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold">
+                    <input type="text" id="welcome-doctor" placeholder="مثال: د.زيد" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">اسم العيادة (اختياري)</label>
@@ -637,8 +646,12 @@
                     </div>
                     <input type="file" id="backup-file" accept=".json,application/json" class="hidden" onchange="importBackup(this)">
                     <div class="pt-3 border-t border-slate-100 dark:border-slate-700 space-y-2">
-                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1.5"><svg class="ico text-brand-600"><use href="#i-lock"/></svg> <span>الأمان والخصوصية</span></label>
+                        <label onclick="adminTap()" class="block text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1.5"><svg class="ico text-brand-600"><use href="#i-lock"/></svg> <span>الأمان والخصوصية</span></label>
                         <div id="security-box" class="space-y-2"></div>
+                    </div>
+                    <div id="admin-wrap" class="hidden pt-3 border-t border-slate-100 dark:border-slate-700 space-y-2">
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1.5"><svg class="ico text-brand-600"><use href="#i-lock"/></svg> <span>لوحة المدير: تفعيل الأطباء</span></label>
+                        <div id="admin-box" class="space-y-2"></div>
                     </div>
                     <button type="button" onclick="resetAllData()" class="w-full border border-red-200 dark:border-red-900 text-red-600 dark:text-red-300 text-xs py-2.5 rounded-xl font-bold">مسح كل البيانات والبدء من الصفر</button>
                     <div class="flex items-center justify-center text-xs text-slate-500 pt-1">
@@ -1059,6 +1072,35 @@
             <button type="button" id="lock-forgot" onclick="forgotPin()" class="text-xs text-brand-200 underline mt-2"></button>
         </div>
     </div>
+    <!-- Activation screen (v21): app works only on devices activated by the owner -->
+    <div id="act-screen" class="fixed inset-0 hidden flex flex-col items-center px-6 bg-gradient-to-b from-brand-900 via-brand-800 to-brand-700 text-white overflow-y-auto" style="z-index:155;padding-top:max(1.5rem,env(safe-area-inset-top));padding-bottom:max(1.5rem,env(safe-area-inset-bottom))">
+        <div class="w-full max-w-xs flex flex-col items-center gap-4" style="margin:auto 0">
+            <img src="icon-192.png" alt="" class="rounded-3xl border border-white/20" style="width:72px;height:72px">
+            <div class="text-center space-y-1">
+                <h2 id="act-title" class="font-black text-lg"></h2>
+                <p id="act-sub" class="text-xs text-brand-200 leading-relaxed"></p>
+            </div>
+            <p id="act-ios" class="hidden text-[11px] font-bold text-amber-300 leading-relaxed text-center"></p>
+            <div class="w-full bg-white/10 border border-white/20 rounded-3xl p-4 space-y-3 text-center">
+                <p id="act-dev-label" class="text-[11px] text-brand-200"></p>
+                <p id="act-dev" dir="ltr" class="font-black text-xl tracking-[0.5em]" style="user-select:all"></p>
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" id="act-copy" onclick="actCopyDevice()" class="bg-white/10 border border-white/20 text-white text-xs py-2.5 rounded-xl font-bold"></button>
+                    <button type="button" id="act-wa" onclick="actSendDevice()" class="bg-brand-600 hover:bg-brand-700 text-white text-xs py-2.5 rounded-xl font-bold shadow-md"></button>
+                </div>
+            </div>
+            <div class="w-full space-y-2">
+                <textarea id="act-code" rows="3" dir="ltr" autocomplete="off" spellcheck="false" class="w-full bg-white text-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold" style="word-break:break-all"></textarea>
+                <button type="button" id="act-go" onclick="actActivate()" class="w-full bg-white text-slate-700 text-xs py-2.5 rounded-xl font-bold shadow-md"></button>
+            </div>
+            <p id="act-err" class="text-xs font-bold text-amber-300 min-h-[1rem] text-center"></p>
+            <div id="act-owner-box" class="hidden w-full space-y-2">
+                <input type="password" id="act-owner-pw" dir="ltr" autocomplete="off" class="w-full text-center bg-white text-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold">
+                <button type="button" id="act-owner-go" onclick="actOwnerLogin()" class="w-full bg-white/10 border border-white/20 text-white text-xs py-2.5 rounded-xl font-bold"></button>
+            </div>
+            <button type="button" id="act-owner" onclick="actShowOwner()" class="text-xs text-brand-200 underline"></button>
+        </div>
+    </div>
     <!-- Cover shown while the app is in the background (hides patient data in the app switcher) -->
     <div id="privacy-cover" class="fixed inset-0 hidden bg-brand-900" style="z-index:140"></div>
 
@@ -1189,6 +1231,7 @@
         };
 
         document.addEventListener('DOMContentLoaded', async () => {
+            await licenseGate();
             await loadState();
             migratePatients();
             applyTheme(); fillProcTypeSelects(); refreshPatientsDatalist(); initTranslator();
@@ -1574,6 +1617,199 @@
             location.reload();
         }
 
+        // ===== Activation / licensing (v21) =====
+        // Each device shows a random 8-char device code. The owner signs {d:device, n:name, e:expiry} with an
+        // ECDSA P-256 private key; the app verifies with LIC_PUB, so a code works only on the device it was made for.
+        // The private key ships encrypted with the admin password (PBKDF2 + AES-GCM); after the owner signs in once
+        // it is kept on that device as a non-extractable CryptoKey (kv 'adminKey'). Fully offline: nothing is sent anywhere.
+        const LIC_PUB = 'BL3DBAx90poVQgBF1uTIpU8gh95sL2Bk4JT/e6/QKTh7LVowVYAuAdAb/jiWX4iR4dOYQ7ducBNF0vwcrPebtWI=';
+        const LIC_ADMIN = { salt: 'mA37JeFGQoWHu1/wGEW1FA==', iv: '3MpbpoC0ePFxU+ZG', data: 'rnMZpXEaWKasaAu9sS8gs0f/kCcc3YvY4KJdTL7VYF3B6jkRSs+PKIbdA5DxFD1pdYaszJsmwid/m3d/fmqum5IWH/xHUaK2CDkJ9rbDM1Yft0l1XoQIuafuVl4UiadR7gHcya9cu1LNoBX564fBmL4vTplv0UuBU/KuUSP3Eii775tG0Qrg6erxJlW+D6ltwxCHcVE7PCvPbA==' };
+        const OWNER_WA = '963945845101';
+        const DEV_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let licDevice = null, adminKey = null, actDone = null, actBusy = false;
+        function b64u(bytes) { return b64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+        function unb64u(s) { s = String(s).replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return unb64(s); }
+        function devNorm(s) { return String(s || '').replace(/[٠-٩]/g, c => '٠١٢٣٤٥٦٧٨٩'.indexOf(c)).toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+        function devFmt(s) { s = devNorm(s); return s.slice(0, 4) + '-' + s.slice(4, 8); }
+        async function licGetDevice() {
+            let d = await dbGet('deviceId');
+            if (typeof d !== 'string' || !/^[A-Z2-9]{8}$/.test(d)) {
+                d = Array.from(crypto.getRandomValues(new Uint8Array(8)), x => DEV_ALPHA[x % 32]).join('');
+                await dbSet('deviceId', d);
+            }
+            return d;
+        }
+        // -> {ok:true,p} or {reason:'bad'|'device'|'expired'}. Accepts the code alone or a whole pasted message.
+        async function licCheck(code, device) {
+            try {
+                const m = String(code || '').replace(/\s+/g, '').match(/CLQ-([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)/);
+                if (!m) return { reason: 'bad' };
+                const body = unb64u(m[1]);
+                const pub = await crypto.subtle.importKey('raw', unb64(LIC_PUB), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
+                if (!(await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, pub, unb64u(m[2]), body))) return { reason: 'bad' };
+                const p = safeParse(TXT_DEC.decode(body));
+                if (!p || p.d !== device) return { reason: 'device' };
+                if (p.e && todayStr() > p.e) return { reason: 'expired', p };
+                return { ok: true, p, code: m[0] };
+            } catch (e) { return { reason: 'bad' }; }
+        }
+        async function licSign(device, name, exp) {
+            const body = TXT_ENC.encode(JSON.stringify({ d: device, n: String(name || '').slice(0, 40), e: exp || '', i: todayStr() }));
+            const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, adminKey, body);
+            return 'CLQ-' + b64u(body) + '.' + b64u(new Uint8Array(sig));
+        }
+        async function adminUnlock(pw) {
+            pw = devNorm(pw);
+            const kek = await deriveKey(pw, unb64(LIC_ADMIN.salt), PBKDF2_ITER, ['decrypt']);
+            const pk = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(LIC_ADMIN.iv) }, kek, unb64(LIC_ADMIN.data));
+            const key = await crypto.subtle.importKey('pkcs8', pk, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+            await dbSet('adminKey', key); adminKey = key;
+            if (licDevice) await dbSet('license', await licSign(licDevice, 'المالك', ''));
+        }
+        async function copyText(s) {
+            try { await navigator.clipboard.writeText(s); return true; } catch (e) { }
+            try { const ta = document.createElement('textarea'); ta.value = s; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok; } catch (e) { return false; }
+        }
+
+        const ACT_TXT = {
+            ar: { title: 'تفعيل Cliniq', sub: 'هذه النسخة تعمل فقط على الأجهزة المفعّلة. أرسل رمز جهازك للمطوّر، وسيرسل لك كود التفعيل.', expired: 'انتهت مدة التفعيل على هذا الجهاز. أرسل رمز جهازك لتجديده، وبياناتك محفوظة كما هي.', nocrypto: 'افتح التطبيق من رابطه (https) لكي يعمل التفعيل.', ios: 'مهم على الآيفون: أضِف التطبيق إلى الشاشة الرئيسية أولاً، ثم افتحه من أيقونته وفعّله من هناك. التفعيل داخل سفاري لا ينتقل إلى التطبيق المثبّت.', dev: 'رمز جهازك', copy: 'نسخ', copied: 'تم النسخ ✓', wa: 'إرسال عبر واتساب', waMsg: 'مرحباً، أريد تفعيل تطبيق Cliniq.\nرمز جهازي: {d}', ph: 'الصق كود التفعيل هنا', go: 'تفعيل', checking: 'جارٍ التحقق...', bad: 'الكود غير صحيح. تأكد أنك نسخته كاملاً.', device: 'هذا الكود لجهاز آخر، ولا يعمل على هذا الجهاز.', expiredCode: 'هذا الكود منتهي الصلاحية.', owner: 'أنا المالك', ownerPh: 'كلمة سر المدير', ownerGo: 'دخول', ownerBad: 'كلمة السر غير صحيحة' },
+            en: { title: 'Activate Cliniq', sub: 'This copy works only on activated devices. Send your device code to the developer and you will receive an activation code.', expired: 'Activation on this device has expired. Send your device code to renew it; your data is kept as is.', nocrypto: 'Open the app from its https link for activation to work.', ios: 'Important on iPhone: add the app to the Home Screen first, then open it from its icon and activate it there. Activation inside Safari does not carry over to the installed app.', dev: 'Your device code', copy: 'Copy', copied: 'Copied ✓', wa: 'Send via WhatsApp', waMsg: 'Hello, I would like to activate Cliniq.\nMy device code: {d}', ph: 'Paste the activation code here', go: 'Activate', checking: 'Checking...', bad: 'Invalid code. Make sure you copied all of it.', device: 'This code is for another device and does not work on this one.', expiredCode: 'This code has expired.', owner: "I'm the owner", ownerPh: 'Admin password', ownerGo: 'Sign in', ownerBad: 'Wrong password' }
+        };
+        function actT() { return ACT_TXT[uiPrefs().lang === 'en' ? 'en' : 'ar']; }
+        // Resolves only when this device holds a valid license; otherwise the activation screen stays up.
+        async function licenseGate() {
+            try {
+                if (!cryptoOk() || !('indexedDB' in window)) throw new Error('no crypto/indexedDB');
+                licDevice = await licGetDevice();
+                adminKey = (await dbGet('adminKey')) || null;
+                const saved = await dbGet('license');
+                if (saved) { const r = await licCheck(saved, licDevice); if (r.ok) return; return showActivation(r.reason === 'expired' ? 'expired' : ''); }
+                return showActivation('');
+            } catch (e) { console.error('activation', e); showActivation('nocrypto'); return new Promise(() => { }); }
+        }
+        function showActivation(mode) {
+            return new Promise(res => {
+                actDone = res;
+                const L = actT(), $ = id => document.getElementById(id);
+                $('act-title').textContent = L.title;
+                $('act-sub').textContent = mode === 'expired' ? L.expired : mode === 'nocrypto' ? L.nocrypto : L.sub;
+                $('act-ios').textContent = L.ios;
+                $('act-ios').classList.toggle('hidden', !(isIOS() && !isStandalone()) || mode === 'nocrypto');
+                $('act-dev-label').textContent = L.dev;
+                $('act-dev').textContent = licDevice ? devFmt(licDevice) : '—';
+                $('act-copy').textContent = L.copy; $('act-wa').textContent = L.wa;
+                $('act-code').placeholder = L.ph; $('act-go').textContent = L.go;
+                $('act-owner').textContent = L.owner; $('act-owner-pw').placeholder = L.ownerPh; $('act-owner-go').textContent = L.ownerGo;
+                $('act-err').textContent = '';
+                $('act-screen').dir = L === ACT_TXT.en ? 'ltr' : 'rtl';
+                if (mode === 'nocrypto') ['act-code', 'act-go', 'act-owner', 'act-copy', 'act-wa'].forEach(id => $(id).classList.add('hidden'));
+                $('act-screen').classList.remove('hidden');
+            });
+        }
+        function actFinish() {
+            document.getElementById('act-screen').classList.add('hidden');
+            const r = actDone; actDone = null; if (r) r();
+        }
+        async function actCopyDevice() {
+            const L = actT(), b = document.getElementById('act-copy');
+            if (await copyText(devFmt(licDevice))) { b.textContent = L.copied; setTimeout(() => b.textContent = L.copy, 1800); }
+        }
+        function actSendDevice() {
+            window.open(`https://wa.me/${OWNER_WA}?text=${encodeURIComponent(actT().waMsg.replace('{d}', devFmt(licDevice)))}`, '_blank');
+        }
+        async function actActivate() {
+            if (actBusy || !actDone) return;
+            const L = actT(), err = document.getElementById('act-err');
+            actBusy = true; err.textContent = L.checking;
+            const r = await licCheck(document.getElementById('act-code').value, licDevice);
+            actBusy = false;
+            if (!r.ok) { err.textContent = r.reason === 'device' ? L.device : r.reason === 'expired' ? L.expiredCode : L.bad; return; }
+            try { await dbSet('license', r.code); } catch (e) { }
+            err.textContent = ''; actFinish();
+        }
+        function actShowOwner() {
+            document.getElementById('act-owner-box').classList.remove('hidden');
+            document.getElementById('act-owner').classList.add('hidden');
+            document.getElementById('act-owner-pw').focus();
+        }
+        async function actOwnerLogin() {
+            if (actBusy || !actDone) return;
+            const L = actT(), err = document.getElementById('act-err');
+            actBusy = true; err.textContent = L.checking;
+            try { await adminUnlock(document.getElementById('act-owner-pw').value); err.textContent = ''; actBusy = false; actFinish(); }
+            catch (e) { actBusy = false; err.textContent = L.ownerBad; }
+        }
+
+        // --- Owner panel inside settings (hidden; 5 quick taps on "الأمان والخصوصية" to sign in on another device) ---
+        let adminTaps = 0, adminTapAt = 0, adminAsk = false, adminLast = '';
+        function adminTap() {
+            const n = Date.now(); adminTaps = n - adminTapAt < 800 ? adminTaps + 1 : 1; adminTapAt = n;
+            if (adminTaps >= 5) { adminTaps = 0; adminAsk = true; renderAdmin(); }
+        }
+        async function adminLog() { try { const l = await dbGet('adminLog'); return Array.isArray(l) ? l : []; } catch (e) { return []; } }
+        async function renderAdmin() {
+            const wrap = document.getElementById('admin-wrap'), box = document.getElementById('admin-box');
+            if (!wrap) return;
+            wrap.classList.toggle('hidden', !(adminKey || adminAsk));
+            if (!(adminKey || adminAsk)) return;
+            const inp = 'w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-bold';
+            const btn = 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-white text-xs py-2.5 rounded-xl font-bold transition';
+            if (!adminKey) {
+                box.innerHTML = `<input type="password" id="adm-pw" dir="ltr" autocomplete="off" placeholder="كلمة سر المدير" class="${inp}">
+                    <button type="button" onclick="adminLogin()" class="w-full bg-brand-600 hover:bg-brand-700 text-white text-xs py-2.5 rounded-xl font-bold shadow-md">دخول</button>`;
+                return;
+            }
+            const log = (await adminLog()).slice().reverse();
+            const dur = (v, n) => `<option value="${v}">${n}</option>`;
+            let h = `<p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">اكتب رمز جهاز الطبيب (يظهر له عند فتح التطبيق)، ثم أرسل له الكود الناتج. الكود يعمل على جهازه فقط.</p>
+                <input type="text" id="adm-dev" dir="ltr" autocomplete="off" placeholder="رمز جهاز الطبيب" class="${inp} text-center">
+                <input type="text" id="adm-name" placeholder="اسم الطبيب" class="${inp}">
+                <div class="flex items-center gap-2"><span class="text-xs text-slate-600 dark:text-slate-300 font-bold shrink-0">مدة التفعيل</span>
+                <select id="adm-dur" class="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold">${dur(12, 'سنة')}${dur(6, '6 أشهر')}${dur(1, 'شهر')}${dur(0, 'بلا انتهاء')}</select></div>
+                <button type="button" onclick="adminIssue()" class="w-full bg-brand-600 hover:bg-brand-700 text-white text-xs py-2.5 rounded-xl font-bold shadow-md">إنشاء كود التفعيل</button>
+                <div id="adm-out" class="space-y-2"></div>`;
+            if (log.length) {
+                h += `<p class="text-xs font-bold text-slate-600 dark:text-slate-300 pt-1">الأجهزة المفعّلة</p><div class="space-y-1.5">` + log.map((r, i) =>
+                    `<button type="button" onclick="adminShow(${log.length - 1 - i})" class="w-full text-start bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs">
+                        <span class="font-bold text-slate-700 dark:text-white">${esc(r.n || '—')}</span>
+                        <span class="text-slate-500 dark:text-slate-400"> · <bdi dir="ltr">${esc(devFmt(r.d))}</bdi> · ${r.e ? `<bdi dir="ltr">${esc(r.e)}</bdi>` : t('بلا انتهاء')}</span></button>`).join('') + `</div>`;
+            }
+            h += `<button type="button" onclick="adminLogout()" class="w-full ${btn}">خروج من وضع المدير</button>`;
+            box.innerHTML = h;
+        }
+        async function adminLogin() {
+            try { await adminUnlock(document.getElementById('adm-pw').value); adminAsk = false; renderAdmin(); showToast(t('تم الدخول كمدير')); }
+            catch (e) { showToast(t('كلمة السر غير صحيحة')); }
+        }
+        async function adminLogout() {
+            if (!(await askConfirm(t('الخروج من وضع المدير على هذا الجهاز؟ ستحتاج كلمة السر للعودة.'), t('خروج'), false))) return;
+            try { await dbDel('adminKey'); } catch (e) { }
+            adminKey = null; adminAsk = false; renderAdmin();
+        }
+        function addMonths(n) { const d = new Date(); d.setMonth(d.getMonth() + n); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+        async function adminIssue() {
+            const dev = devNorm(document.getElementById('adm-dev').value), name = document.getElementById('adm-name').value.trim();
+            if (!/^[A-Z2-9]{8}$/.test(dev)) { showToast(t('رمز الجهاز غير صحيح (8 أحرف وأرقام)')); return; }
+            if (!name) { showToast(t('يرجى إدخال اسم الطبيب')); return; }
+            const m = +document.getElementById('adm-dur').value, e = m ? addMonths(m) : '';
+            try {
+                const c = await licSign(dev, name, e);
+                const log = await adminLog(); log.push({ d: dev, n: name, e, at: todayStr(), c }); await dbSet('adminLog', log);
+                await renderAdmin(); adminShow(log.length - 1);
+            } catch (x) { console.error(x); showToast(t('تعذّر إنشاء الكود')); }
+        }
+        async function adminShow(i) {
+            const r = (await adminLog())[i], out = document.getElementById('adm-out');
+            if (!r || !out) return;
+            adminLast = t('كود تفعيل Cliniq الخاص بك:') + '\n\n' + r.c + '\n\n' + t('افتح التطبيق، والصق هذه الرسالة في خانة التفعيل، ثم اضغط «تفعيل».');
+            out.innerHTML = `<p class="text-xs font-bold text-emerald-600 dark:text-emerald-400">${esc(r.n)} · <bdi dir="ltr">${esc(devFmt(r.d))}</bdi></p>
+                <textarea readonly rows="3" dir="ltr" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-[11px]" style="word-break:break-all">${esc(r.c)}</textarea>
+                <div class="grid grid-cols-2 gap-2"><button type="button" onclick="adminCopy()" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-white text-xs py-2.5 rounded-xl font-bold transition">نسخ</button>
+                <button type="button" onclick="adminWa()" class="bg-brand-600 hover:bg-brand-700 text-white text-xs py-2.5 rounded-xl font-bold shadow-md">إرسال عبر الواتساب</button></div>`;
+        }
+        async function adminCopy() { showToast(t((await copyText(adminLast)) ? 'تم النسخ' : 'تعذّر النسخ')); }
+        function adminWa() { window.open(`https://wa.me/?text=${encodeURIComponent(adminLast)}`, '_blank'); }
+
         // ===== Enable / change / disable the lock =====
         async function enableLock() {
             if (!cryptoOk()) { showToast(t('التشفير غير متاح هنا. افتح التطبيق من رابط https.')); return; }
@@ -1726,7 +1962,7 @@ Object.assign(I18N_EN, {
 'سلة المحذوفات':'Recycle bin','تُحذف تلقائياً بعد 30 يوماً':'auto-deleted after 30 days','نُقل الطلب إلى سلة المحذوفات':'Order moved to the recycle bin','تم استرجاع الطلب':'Order restored','حذف هذا الطلب نهائياً؟ لا يمكن التراجع.':'Permanently delete this order? This cannot be undone.','تعديل طلب المخبر':'Edit lab order','حفظ التعديلات':'Save changes'
 });
 Object.assign(I18N_EN, {
-'مرحباً بك في مساعد العيادة':'Welcome to the clinic assistant','أدخل بياناتك لتظهر في التطبيق والوصفات. يمكنك تعديلها لاحقاً من الإعدادات.':'Enter your details to show in the app and prescriptions. You can change them later in settings.','اسم العيادة (اختياري)':'Clinic name (optional)','مثال: د. أحمد':'e.g. Dr. Ahmad','مثال: عيادة الابتسامة':'e.g. Smile Clinic','ابدأ الاستخدام':'Get started','يرجى إدخال اسم الطبيب':'Please enter the doctor name','الطبيب':'Doctor',
+'مرحباً بك في مساعد العيادة':'Welcome to the clinic assistant','أدخل بياناتك لتظهر في التطبيق والوصفات. يمكنك تعديلها لاحقاً من الإعدادات.':'Enter your details to show in the app and prescriptions. You can change them later in settings.','اسم العيادة (اختياري)':'Clinic name (optional)','مثال: د.زيد':'e.g. Dr.Zaid','د.زيد':'Dr.Zaid','مثال: عيادة الابتسامة':'e.g. Smile Clinic','ابدأ الاستخدام':'Get started','يرجى إدخال اسم الطبيب':'Please enter the doctor name','الطبيب':'Doctor',
 'مسح كل البيانات والبدء من الصفر':'Erase all data and start fresh','سيتم مسح كل بيانات التطبيق نهائياً: المرضى والصور والمواعيد والمخزون والتعقيم والمخابر. خذ نسخة احتياطية أولاً. متابعة؟':'All app data will be permanently erased: patients, photos, appointments, inventory, sterilization and labs. Take a backup first. Continue?','مسح كل شيء':'Erase everything','تأكيد أخير: لا يمكن التراجع عن هذا المسح.':'Last confirmation: this cannot be undone.','نعم، امسح':'Yes, erase',
 'قائمة تحضير الأدوات':'Tool prep list','أنشئ قائمة تحضير لكل نوع معالجة، وأضف إليها الأدوات والمواد المطلوبة. المواد التي تحمل نفس اسم مادة في المخزون تُخصم تلقائياً عند الإنجاز.':'Create a prep list per treatment type and add its tools and materials. Items with the same name as an inventory item are deducted automatically on completion.','لا توجد قوائم تحضير بعد. اضغط "إضافة قائمة إجراء جديدة" للبدء.':'No prep lists yet. Tap "Add new procedure list" to start.','لا توجد أدوات في هذه القائمة. أضف أداة من الحقل أدناه.':'No tools in this list. Add one from the field below.','حذف الأداة':'Remove tool','حذف القائمة':'Delete list','هل تريد حذف قائمة التحضير':'Delete the prep list','تم حذف القائمة':'List deleted','—':'—',
 'المخزون فارغ. اضغط "إضافة مادة جديدة للمخزون" للبدء.':'Inventory is empty. Tap "Add new inventory item" to start.','تعديل مادة في المخزون':'Edit inventory item','هل تريد حذف':'Delete','من المخزون؟':'from inventory?','هي مستخدمة في قوائم التحضير:':'It is used in prep lists:','ستبقى هناك كأداة غير مرتبطة بالمخزون.':'It will remain there as an untracked tool.','تم حذف المادة':'Item deleted','توجد مادة بنفس الاسم':'An item with this name already exists',
@@ -1746,6 +1982,17 @@ Object.assign(I18N_EN, {
 'القفل برمز مفعّل والبيانات والصور مشفّرة على هذا الجهاز':'PIN lock is on; data and photos are encrypted on this device','القفل التلقائي بعد':'Auto-lock after','فوراً':'Immediately','دقيقة واحدة':'1 minute','5 دقائق':'5 minutes','15 دقيقة':'15 minutes','قفل الآن':'Lock now','تغيير الرمز':'Change PIN','إيقاف القفل':'Turn off lock',
 'القفل غير مفعّل: أي شخص يفتح جهازك يستطيع رؤية بيانات المرضى.':'Lock is off: anyone who opens your device can see patient data.','تفعيل القفل برمز وتشفير البيانات':'Enable PIN lock and encrypt data','الحفظ لا يعمل بطريقة الفتح هذه.':'Saving does not work when opened this way.',
 'التخزين الدائم مفعّل: البيانات محفوظة على هذا الجهاز':'Persistent storage is on: data is kept on this device','قد يمسح المتصفح البيانات تلقائياً. ثبّت التطبيق على الشاشة الرئيسية وخذ نسخة احتياطية دورياً.':'The browser may clear data automatically. Install the app on the home screen and back up regularly.','يعمل كتطبيق مثبّت':'Running as an installed app','تثبيت كتطبيق على هذا الجهاز':'Install as an app on this device'
+});
+        Object.assign(I18N_EN, { // v20
+'غير موجودة في المخزون':'Not in inventory','إضافة للمخزون':'Add to inventory'
+});
+        Object.assign(I18N_EN, { // v21 activation / owner panel
+'لوحة المدير: تفعيل الأطباء':'Owner panel: activate doctors','كلمة سر المدير':'Admin password','دخول':'Sign in','تم الدخول كمدير':'Signed in as owner','كلمة السر غير صحيحة':'Wrong password',
+'اكتب رمز جهاز الطبيب (يظهر له عند فتح التطبيق)، ثم أرسل له الكود الناتج. الكود يعمل على جهازه فقط.':"Type the doctor's device code (shown to them when they open the app), then send them the generated code. It works on their device only.",
+'رمز جهاز الطبيب':"Doctor's device code",'مدة التفعيل':'Activation period','سنة':'1 year','6 أشهر':'6 months','شهر':'1 month','بلا انتهاء':'No expiry','إنشاء كود التفعيل':'Create activation code',
+'الأجهزة المفعّلة':'Activated devices','خروج من وضع المدير':'Leave owner mode','الخروج من وضع المدير على هذا الجهاز؟ ستحتاج كلمة السر للعودة.':'Leave owner mode on this device? You will need the password to come back.','خروج':'Leave',
+'رمز الجهاز غير صحيح (8 أحرف وأرقام)':'Invalid device code (8 letters and digits)','تعذّر إنشاء الكود':'Could not create the code','نسخ':'Copy','تم النسخ':'Copied','تعذّر النسخ':'Could not copy',
+'كود تفعيل Cliniq الخاص بك:':'Your Cliniq activation code:','افتح التطبيق، والصق هذه الرسالة في خانة التفعيل، ثم اضغط «تفعيل».':'Open the app, paste this message into the activation box, then tap "Activate".'
 });
         const I18N_RX = [
             [/^(\d+) مواعيد$/, m => m[1] + ' appointments'],
@@ -1934,6 +2181,89 @@ Object.assign(I18N_EN, {
             const ph = document.getElementById('app-phone');
             if (p && p.phone && !ph.value.trim()) ph.value = p.phone;
         }
+
+        // ---- Suggestion list under an input (buttons, filtered while typing). <datalist> doesn't show on iPhone.
+        const SUGG = {};
+        let suggActive = null, suggPicking = false, suggBox = null;
+        function suggNorm(s) {
+            return String(s || '').toLowerCase().trim().replace(/[ً-ْـ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
+        }
+        function suggSetup(inputId, getItems, onPick) {
+            const inp = document.getElementById(inputId); if (!inp) return;
+            inp.removeAttribute('list'); inp.setAttribute('autocomplete', 'off');
+            SUGG[inputId] = { getItems, onPick };
+            const open = () => { if (!suggPicking) suggShow(inputId); };
+            inp.addEventListener('focus', open);
+            inp.addEventListener('click', open);
+            inp.addEventListener('input', open);
+            inp.addEventListener('blur', () => setTimeout(() => { if (suggActive === inputId && document.activeElement !== inp) suggHide(); }, 200));
+            inp.addEventListener('keydown', e => {
+                if (suggActive !== inputId || !suggBox) return;
+                const btns = [...suggBox.querySelectorAll('.sugg-item')]; if (!btns.length) return;
+                let i = btns.findIndex(b => b.classList.contains('on'));
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                    e.preventDefault(); if (i >= 0) btns[i].classList.remove('on');
+                    i = e.key === 'ArrowDown' ? (i + 1) % btns.length : (i <= 0 ? btns.length - 1 : i - 1);
+                    btns[i].classList.add('on'); btns[i].scrollIntoView({ block: 'nearest' });
+                } else if (e.key === 'Enter' && i >= 0) { e.preventDefault(); btns[i].click(); }
+                else if (e.key === 'Escape') suggHide();
+            });
+        }
+        function suggShow(inputId) {
+            const cfg = SUGG[inputId], inp = document.getElementById(inputId);
+            if (!cfg || !inp || inp.offsetParent === null) return suggHide();
+            const q = suggNorm(inp.value);
+            let items = cfg.getItems().filter(x => x && x.label);
+            if (q) items = items.filter(x => suggNorm(x.label).includes(q) || (x.find && suggNorm(x.find).includes(q)))
+                .sort((a, b) => (suggNorm(b.label).startsWith(q) ? 1 : 0) - (suggNorm(a.label).startsWith(q) ? 1 : 0));
+            if (!items.length || (items.length === 1 && suggNorm(items[0].label) === q)) return suggHide();
+            if (!suggBox) {
+                suggBox = document.createElement('div'); suggBox.className = 'sugg-box'; suggBox.setAttribute('role', 'listbox');
+                suggBox.addEventListener('mousedown', e => e.preventDefault()); // keep focus in the input
+                document.body.appendChild(suggBox);
+            }
+            suggActive = inputId;
+            suggBox.innerHTML = items.slice(0, 60).map((x, i) => `<button type="button" class="sugg-item" data-i="${i}"><span>${esc(x.label)}</span>${x.sub ? `<span class="sugg-sub${x.low ? ' low' : ''}" dir="${x.subLtr ? 'ltr' : 'auto'}">${esc(x.sub)}</span>` : ''}</button>`).join('');
+            suggBox.querySelectorAll('.sugg-item').forEach(b => b.addEventListener('click', () => suggPick(inputId, items[+b.dataset.i])));
+            suggBox.dir = document.documentElement.dir || 'rtl';
+            suggBox.style.display = 'block';
+            suggPlace();
+        }
+        function suggPlace() {
+            if (!suggActive || !suggBox) return;
+            const inp = document.getElementById(suggActive);
+            if (!inp || inp.offsetParent === null) return suggHide();
+            const r = inp.getBoundingClientRect(), vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            const h = Math.min(220, suggBox.scrollHeight + 2);
+            suggBox.style.left = Math.max(8, r.left) + 'px';
+            suggBox.style.width = Math.max(180, Math.min(r.width, window.innerWidth - 16)) + 'px';
+            suggBox.style.top = (r.bottom + 4 + h > vh && r.top - 4 - h > 0 ? r.top - 4 - h : r.bottom + 4) + 'px';
+        }
+        function suggHide() { suggActive = null; if (suggBox) { suggBox.style.display = 'none'; suggBox.innerHTML = ''; } }
+        function suggPick(inputId, item) {
+            const inp = document.getElementById(inputId), cfg = SUGG[inputId]; if (!inp || !item) return;
+            inp.value = item.label;
+            suggPicking = true;
+            try { inp.dispatchEvent(new Event('input', { bubbles: true })); if (cfg.onPick) cfg.onPick(item); }
+            finally { suggPicking = false; }
+            suggHide();
+        }
+        window.addEventListener('scroll', suggPlace, true);
+        window.addEventListener('resize', suggPlace);
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', suggPlace);
+        document.addEventListener('pointerdown', e => {
+            if (!suggActive || !suggBox) return;
+            if (suggBox.contains(e.target) || e.target === document.getElementById(suggActive)) return;
+            suggHide();
+        }, true);
+        function patientSuggItems() { return state.patients.map(p => ({ label: p.name, sub: p.phone || '', subLtr: true, find: p.phone || '' })); }
+        function inventorySuggItems() { return state.inventory.map(i => ({ label: i.name, sub: t(i.qty + ' متوفر'), low: i.qty <= 0 })); }
+        function setupSuggestions() {
+            suggSetup('new-tool-name', inventorySuggItems, () => { const q = document.getElementById('new-tool-qty'); if (q) q.focus(); });
+            suggSetup('rx-patient-name', patientSuggItems);
+            suggSetup('lab-patient-name', patientSuggItems);
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setupSuggestions); else setupSuggestions();
 
         let addPatientFromRx = true;
         function openAddPatientModal(fromRx = true) {
@@ -2554,7 +2884,7 @@ Object.assign(I18N_EN, {
         }
 
         // Modal Handlers
-        const APP_VERSION = 'v19';
+        const APP_VERSION = 'v21';
         async function forceUpdate() {
             try {
                 for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
@@ -2567,7 +2897,7 @@ Object.assign(I18N_EN, {
             document.getElementById('setting-doctor-input').value = state.doctorName;
             document.getElementById('setting-clinic-input').value = state.clinicName;
             document.getElementById('setting-country-input').value = state.countryCode || '';
-            refreshSettingsUI(); renderSecurity();
+            refreshSettingsUI(); renderSecurity(); adminAsk = false; renderAdmin();
             document.getElementById('modal-settings').classList.remove('hidden');
         }
         function openNewAppointmentModal(patientId) {
@@ -2903,21 +3233,44 @@ Object.assign(I18N_EN, {
             proc.items.forEach(it => { if (it.invId) need[it.invId] = (need[it.invId] || 0) + it.qty; });
             return need;
         }
+        function invByName(name) { const n = String(name || '').trim().toLowerCase(); return n ? state.inventory.find(i => i.name.trim().toLowerCase() === n) : null; }
+        // Link every prep item to the inventory item with the same name (items added before the stock item existed, or whose stock item was deleted).
+        function procRelink() {
+            Object.values(state.procedures || {}).forEach(p => (p.items || []).forEach(it => {
+                if (it.invId && state.inventory.some(i => i.id === it.invId)) return;
+                const inv = invByName(it.name);
+                it.invId = inv ? inv.id : 0;
+                if (inv) it.name = inv.name;
+            }));
+        }
         function procShortages(proc) {
+            procRelink();
             const need = procNeed(proc), seen = new Set(), out = [];
             proc.items.forEach(it => {
                 const inv = state.inventory.find(i => i.id === it.invId);
-                if (!inv || seen.has(inv.id)) return;
+                if (!inv) {
+                    const k = 'n:' + String(it.name).trim().toLowerCase();
+                    if (!seen.has(k)) { seen.add(k); out.push({ invId: 0, name: it.name, missing: true }); }
+                    return;
+                }
+                if (seen.has(inv.id)) return;
                 seen.add(inv.id);
                 if (inv.qty < need[inv.id]) out.push({ invId: inv.id, name: it.name, need: need[inv.id], stock: inv.qty });
             });
             return out;
+        }
+        let procMissingNames = [];
+        function addMissingToInventory(i) {
+            const name = procMissingNames[i]; if (!name) return;
+            openNewInventoryModal();
+            document.getElementById('inv-new-name').value = name;
         }
         function refreshInventoryDatalist() { const dl = document.getElementById('inventory-datalist'); if (dl) dl.innerHTML = state.inventory.map(i => `<option value="${esc(i.name)}"></option>`).join(''); }
         function renderProcedureChecklist() {
             if (state.selectedProcedureKey && !state.procedures[state.selectedProcedureKey]) state.selectedProcedureKey = null;
             if (!state.selectedProcedureKey) { const k = Object.keys(state.procedures)[0]; if (k) state.selectedProcedureKey = k; }
             const proc = state.procedures[state.selectedProcedureKey];
+            procRelink();
             refreshInventoryDatalist();
             document.getElementById('proc-add-row').classList.toggle('hidden', !proc);
             document.getElementById('proc-head-btns').classList.toggle('hidden', !proc);
@@ -2945,7 +3298,7 @@ Object.assign(I18N_EN, {
                 const invItem = state.inventory.find(i => i.id === item.invId);
                 const tracked = !!invItem;
                 const stockQty = tracked ? invItem.qty : 0;
-                const isLow = tracked && stockQty < need[item.invId];
+                const isLow = !tracked || stockQty < need[item.invId];
 
                 container.innerHTML += `
                     <div class="flex justify-between items-center p-3 rounded-2xl border ${isLow ? 'bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800' : 'bg-slate-50 dark:bg-slate-900 border-slate-200/80 dark:border-slate-800'}">
@@ -2960,7 +3313,7 @@ Object.assign(I18N_EN, {
                                 <button onclick="changeToolQty(${item.id}, 1)" class="text-slate-500 hover:text-brand-600 px-1 font-extrabold">+</button>
                             </div>
                             <button type="button" onclick="removeToolFromProcedure(${item.id})" class="p-1 rounded-lg text-slate-400 hover:text-red-500 transition" title="${esc(t('حذف الأداة'))}"><svg class="ico"><use href="#i-xmark"/></svg></button>
-                            <button type="button" onclick="goToInventoryItem(${item.invId})" class="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="${tracked ? 'الكمية المتوفرة بالمخزون: ' + stockQty : 'غير مرتبطة بالمخزون'}"><svg class="ico ${isLow ? 'text-red-500 animate-pulse' : 'text-slate-400'}"><use href="#i-cart-shopping"/></svg></button>
+                            <button type="button" onclick="goToInventoryItem(${item.invId})" class="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="${tracked ? 'الكمية المتوفرة بالمخزون: ' + stockQty : 'غير موجودة في المخزون'}"><svg class="ico ${isLow ? 'text-red-500 animate-pulse' : 'text-slate-400'}"><use href="#i-cart-shopping"/></svg></button>
                         </div>
                     </div>
                 `;
@@ -2968,18 +3321,26 @@ Object.assign(I18N_EN, {
                 syncList.innerHTML += `
                     <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-1.5">
                         <span class="text-slate-600 dark:text-slate-400">${esc(item.name)}</span>
-                        ${tracked ? `<span class="font-bold ${isLow ? 'text-red-500' : 'text-emerald-600'}">${stockQty} متوفر</span>` : '<span class="font-bold text-slate-400">غير مرتبطة بالمخزون</span>'}
+                        ${tracked ? `<span class="font-bold ${isLow ? 'text-red-500' : 'text-emerald-600'}">${stockQty} متوفر</span>` : '<span class="font-bold text-red-500">غير موجودة في المخزون</span>'}
                     </div>
                 `;
             });
 
             const shortages = procShortages(proc);
+            procMissingNames = shortages.filter(x => x.missing).map(x => x.name);
             const box = document.getElementById('procedure-shortage-box');
             box.classList.toggle('hidden', shortages.length === 0);
             box.innerHTML = shortages.length === 0 ? '' : `
                 <div class="flex items-center gap-2 text-red-700 dark:text-red-300 font-extrabold text-xs"><svg class="ico"><use href="#i-triangle-exclamation"/></svg><span>المخزون غير كافٍ لإتمام التحضير</span></div>
                 <p class="text-[11px] text-red-600 dark:text-red-300/80 leading-relaxed">عدّل الكميات المطلوبة أو حدّث المخزون حتى تصبح كل المواد متوفرة.</p>
-                ${shortages.map(x => `
+                ${shortages.map(x => x.missing ? `
+                    <div class="flex justify-between items-center gap-2 text-xs">
+                        <span class="font-bold text-slate-800 dark:text-white">${esc(x.name)}</span>
+                        <span class="flex items-center gap-3 shrink-0">
+                            <span class="text-red-600 dark:text-red-300 font-bold">غير موجودة في المخزون</span>
+                            <button type="button" onclick="addMissingToInventory(${procMissingNames.indexOf(x.name)})" class="text-brand-600 hover:text-brand-700 font-bold underline">إضافة للمخزون</button>
+                        </span>
+                    </div>` : `
                     <div class="flex justify-between items-center gap-2 text-xs">
                         <span class="font-bold text-slate-800 dark:text-white">${esc(x.name)}</span>
                         <span class="flex items-center gap-3 shrink-0">
@@ -3773,7 +4134,8 @@ Object.assign(I18N_EN, {
             await wipeAllData();
         }
         async function wipeAllData() {
-            try { saveTimer && clearTimeout(saveTimer); dbLoaded = false; await saving; const db = await openDB(); await new Promise((res, rej) => { const tx = db.transaction(['kv', 'photos'], 'readwrite'); tx.objectStore('kv').clear(); tx.objectStore('photos').clear(); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.error(e); }
+            // Keep this device's activation (device code, license, owner key/log) — only clinic data is erased
+            try { saveTimer && clearTimeout(saveTimer); dbLoaded = false; await saving; const keep = {}; for (const k of ['deviceId', 'license', 'adminKey', 'adminLog']) { try { const v = await dbGet(k); if (v !== undefined) keep[k] = v; } catch (e) { } } const db = await openDB(); await new Promise((res, rej) => { const tx = db.transaction(['kv', 'photos'], 'readwrite'); const kv = tx.objectStore('kv'); kv.clear(); for (const k in keep) kv.put(keep[k], k); tx.objectStore('photos').clear(); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) { console.error(e); }
             try { ['dc-lock-fails', 'dc-lock-until'].forEach(k => localStorage.removeItem(k)); } catch (e) { }
             location.reload();
         }
