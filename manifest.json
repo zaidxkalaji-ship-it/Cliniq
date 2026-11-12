@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "Cliniq",
+  "short_name": "Cliniq",
+  "description": "مساعد شخصي لعيادة الأسنان: المواعيد وملفات المرضى والوصفات والتعقيم والمخابر والمخزون.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone"],
+  "orientation": "any",
+  "background_color": "#0d111a",
+  "theme_color": "#0d111a",
+  "categories": ["medical", "productivity"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
